@@ -4,7 +4,7 @@
   * @author  Vu Trung Hieu
   * @version V1.0
   * @date    5-May-2017
-  * @brief   This file contains all the functions prototypes for can_trans_recv
+  * @brief   This file contains the functions prototypes for can_trans_recv
   *          library.  
   ******************************************************************************
   * @attention
@@ -25,8 +25,8 @@
 #include "stm32f4xx.h"
 
 /* Define --------------------------------------------------------------------*/
-//#define USE_CAN1
-#define USE_CAN2
+#define USE_CAN1
+//#define USE_CAN2
 
 #define USE_BOARD_1	 
 //#define USE_BOARD_2
