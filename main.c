@@ -1,6 +1,7 @@
 #include "stm32f4xx.h"
 #include "stdbool.h"
 #include "string.h"
+#include "stdlib.h"
 #include "system_timetick.h"
 #include "uart_dma_timeout.h"
 #include "can_trans_recv.h"
@@ -14,11 +15,20 @@ uint8_t can_Data[8];
 #ifdef USE_BOARD_2
 extern uint8_t rcv_message[BUFF_SIZE];
 extern bool b_UART_DMA_Timeout;
+uint8_t cmd_message[6];
+uint8_t value_message[4];
 uint8_t can_Data[8];
+uint8_t i, count = 0;
 #endif
 
 #ifdef USE_BOARD_3
-
+extern uint8_t rcv_message[BUFF_SIZE];
+extern bool b_UART_DMA_Timeout;
+uint8_t receive[6]={0,0,0,0,0,0};
+uint8_t count = 0;
+uint8_t i;
+uint8_t send_mes[2];
+uint8_t send[8]={0};
 #endif
 
 void init_main(void);
@@ -36,10 +46,7 @@ int main(void)
 		if(tick_count == 100)
 		{
 			tick_count = 0;
-			//while (USART_GetFlagStatus(USART2, USART_FLAG_TXE) == RESET);
-			//USART_SendData(UART4,(uint8_t)65);	
-			
-			//GPIO_ToggleBits(GPIOD, GPIO_Pin_13);
+			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
 		}	
 		else
 		{
@@ -80,49 +87,44 @@ int main(void)
 #endif
 		
 #ifdef USE_BOARD_2
-		if(tick_count == 150)
+		if(tick_count == 100)
 		{
-			tick_count = 151;
-			can_Data[0] = 0x14;
-			can_Data[1] = 0x15;
-			CAN_Trans_Txmessage(0x01, 1, can_Data);
-			GPIO_ToggleBits(GPIOD, GPIO_Pin_13);
+			tick_count = 0;	
+			GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
 		}	
-		else if (tick_count == 300)
-		{
-			tick_count = 301;
-			can_Data[0] = 0x10;
-			can_Data[0] = 0x13;
-			CAN_Trans_Txmessage(0x321, 1, can_Data);
-			GPIO_ToggleBits(GPIOD, GPIO_Pin_14);
-		}
-		else if (tick_count == 450)
-		{
-			tick_count = 0;
-			can_Data[0] = 0x16;
-			can_Data[0] = 0x17;
-			CAN_Trans_Txmessage(0x02, 2, can_Data);
-			GPIO_ToggleBits(GPIOD, GPIO_Pin_15);
-		}
 		else
 		{
 			if(b_UART_DMA_Timeout)
 			{
 				b_UART_DMA_Timeout = false;
-				if(!strcmp((char*) rcv_message, "[PD12_TOGGLE]"))
+				
+				count = 0;
+				while(rcv_message[count] != '\0')
 				{
-					GPIO_ToggleBits(GPIOD, GPIO_Pin_12);
-					UART4_DMA_Send("[DONE]", strlen("[DONE]"));
+					count++;
 				}
-				else if(!strcmp((char*) rcv_message, "[PD12_ON]"))
+				
+				for(i=0; i<5;i++)
+					cmd_message[i] = rcv_message[i];
+				cmd_message[i] = 0;
+				
+				if(!strcmp((char*) cmd_message, "[temp"))
 				{
-					GPIO_SetBits(GPIOD, GPIO_Pin_12);
-					UART4_DMA_Send("[DONE]", strlen("[DONE]"));
+					GPIO_ToggleBits(GPIOD,GPIO_Pin_13);
+					for(i = 13;i<count-1;i++)
+						value_message[i-13] = rcv_message[i];
+					value_message[i-13] = 0;
+					can_Data[0] = atoi((char*)value_message);
+					CAN_Trans_Txmessage(0x01, 1, can_Data);
 				}
-				else if(!strcmp((char*) rcv_message, "[PD12_OFF]"))
+				else if(!strcmp((char*) cmd_message, "[fuel"))
 				{
-					GPIO_ResetBits(GPIOD, GPIO_Pin_12);
-					UART4_DMA_Send("[DONE]", strlen("[DONE]"));
+					GPIO_ToggleBits(GPIOD,GPIO_Pin_14);
+					for(i = 6;i<count-1;i++)
+						value_message[i-6] = rcv_message[i];
+					value_message[i-6] = 0;
+					can_Data[0] = atoi((char*)value_message);
+					CAN_Trans_Txmessage(0x02, 1, can_Data);
 				}
 			}
 		}
@@ -135,8 +137,79 @@ int main(void)
 		}	
 		else
 		{
-			
+			if(flag == true)
+			{
+				flag = false;
+				if((RxMessage.Data[0] == 0)&&(RxMessage.Data[1]==0)) 
+				{
+					GPIO_SetBits(GPIOD,GPIO_Pin_12);
+					UART4_DMA_Send("ledL_OFF", strlen("ledL_OFF"));
+				}
+				else if((RxMessage.Data[0] == 0)&&(RxMessage.Data[1]==1)) 
+				{
+					GPIO_SetBits(GPIOD,GPIO_Pin_13);
+					UART4_DMA_Send("ledL_ON", strlen("ledL_ON"));
+				}
+				else if((RxMessage.Data[0] == 1)&&(RxMessage.Data[1]==0)) 
+				{
+					GPIO_SetBits(GPIOD,GPIO_Pin_14);
+					UART4_DMA_Send("ledR_OFF", strlen("ledR_OFF"));
+				}
+				else if((RxMessage.Data[0] == 1)&&(RxMessage.Data[1]==1)) 
+				{
+					GPIO_SetBits(GPIOD,GPIO_Pin_15);
+					UART4_DMA_Send("ledR_ON", strlen("ledR_ON"));
+				}
+			}
+			if(b_UART_DMA_Timeout)
+			{
+				b_UART_DMA_Timeout = false;
+				while(rcv_message[count] != '\0')
+				{
+					count++;
+				}
+				for(i=0; i<5;i++)
+					receive[i] = rcv_message[i];
+				receive[i] = 0;
+				if(!strcmp((char*) receive, "[velo"))
+				{
+					GPIO_SetBits(GPIOD,GPIO_Pin_15);
+					for(i = 10;i<count-1;i++)
+						send_mes[i-10] = rcv_message[i];
+					send_mes[i-10] = 0;
+					send[0] = atoi((char*)send_mes);
+					CAN_Trans_Txmessage(0x03, 1, send);
+				}
+				else if(!strcmp((char*) receive, "echol"))
+				{
+					if(!strcmp((char*) rcv_message, "echoledL_OFF"))
+					{
+						send_mes[0] = 0;
+						send_mes[1] = 0;
+						CAN_Trans_Txmessage(0x05, 2, send_mes);
+					}
+					else if(!strcmp((char*) rcv_message, "echoledL_ON"))
+					{
+						send_mes[0] = 0;
+						send_mes[1] = 1;
+						CAN_Trans_Txmessage(0x05, 2, send_mes);
+					}
+					else if(!strcmp((char*) rcv_message, "echoledR_OFF"))
+					{
+						send_mes[0] = 1;
+						send_mes[1] = 0;
+						CAN_Trans_Txmessage(0x05, 2, send_mes);
+					}
+					else if(!strcmp((char*) rcv_message, "echoledR_ON"))
+					{
+						send_mes[0] = 1;
+						send_mes[1] = 1;
+						CAN_Trans_Txmessage(0x05, 2, send_mes);
+					}
+				}
+			}
 		}
+		
 #endif
 	}
 }

@@ -28,9 +28,9 @@
 #define USE_CAN1
 //#define USE_CAN2
 
-#define USE_BOARD_1	 
+//#define USE_BOARD_1	 
 //#define USE_BOARD_2
-//#define USE_BOARD_3
+#define USE_BOARD_3
 	 
 /* Initialization and Configuration functions --------------------------------*/
 void CAN_Trans_Recv_Init(void);

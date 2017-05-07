@@ -35,9 +35,13 @@
 #include "stdio.h"
 #include "uart_dma_timeout.h"
 #include "string.h"
+#include "stdbool.h"
 
 /* Public variables ----------------------------------------------------------*/
-
+#ifdef USE_BOARD_3
+CanRxMsg RxMessage;
+bool flag = false;
+#endif
 /* Private typedef -----------------------------------------------------------*/
 /* Private define ------------------------------------------------------------*/
 #ifdef USE_CAN1
@@ -277,7 +281,7 @@ void CAN_Trans_Recv_Init(void)
 
 /**
   * @brief  CAN send
-  * @note   ...
+  * @note   can_Data must be a array 8
   * @param  Includes ID std, length, pointer of data
   * @retval None
   */
@@ -311,7 +315,7 @@ void CAN_RX0_IRQHandler(void)
 	CanRxMsg RxMessage;
 	uint8_t uart_data[30];
 	
-	GPIO_ToggleBits(GPIOD, GPIO_Pin_15);
+	GPIO_ToggleBits(GPIOD, GPIO_Pin_13);
   CAN_Receive(CAN_MODULE, CAN_FIFO0, &RxMessage);
 	if(RxMessage.StdId == 0x01)
 	{
@@ -331,7 +335,7 @@ void CAN_RX1_IRQHandler(void)
 	CanRxMsg RxMessage;
 	uint8_t uart_data[30];
 	
-	GPIO_ToggleBits(GPIOD, GPIO_Pin_14);
+	GPIO_ToggleBits(GPIOD, GPIO_Pin_15);
   CAN_Receive(CAN_MODULE, CAN_FIFO1, &RxMessage);
 	if(RxMessage.StdId == 0x03)
 	{
@@ -381,7 +385,6 @@ void CAN_RX1_IRQHandler(void)
 #ifdef USE_BOARD_3
 void CAN_RX0_IRQHandler(void)
 {
-	CanRxMsg RxMessage;
 	GPIO_ToggleBits(GPIOD, GPIO_Pin_15);
   CAN_Receive(CAN_MODULE, CAN_FIFO0, &RxMessage);
 }
